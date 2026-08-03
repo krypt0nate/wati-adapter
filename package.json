@@ -1,15 +1,31 @@
 {
   "name": "wati-adapter",
   "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krypt0nate/wati-adapter.git"
+  },
+  "homepage": "https://github.com/krypt0nate/wati-adapter#readme",
+  "bugs": {
+    "url": "https://github.com/krypt0nate/wati-adapter/issues"
+  },
+  "license": "MIT",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
+    "build": "turbo build",
+    "dev": "turbo dev",
     "lint": "turbo run lint",
-    "check-types": "turbo run check-types"
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean && rm -rf node_modules",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.6",
+    "tsx": "^4.23.5",
     "turbo": "^2.10.8",
-    "typescript": "5.9.2"
+    "typescript": "^5.9.3",
+    "ultracite": "7.2.4"
   },
   "engines": {
     "node": ">=18"
