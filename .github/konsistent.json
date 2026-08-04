@@ -1,27 +1,27 @@
 {
-    "$schema": "../node_modules/konsistent/konsistent.schema.json",
-    "version": "v1",
-    "conventions": [
-      {
-        "name": "package-dir-must-have-required-files",
-        "description": "Every package directory must contain a specific minimum set of files.",
-        "paths": ["packages/*"],
-        "must": [
-          {
-            "name": "package-dir-must-have-package-and-docs-files",
-            "description": "Every package directory must contain README, package.json and tsconfig.json.",
-            "must": {
-              "haveType": "directory",
-              "haveFiles": [
-                "README.md",
-                "package.json",
-                "tsconfig.json",
-                "tsup.config.ts",
-                "src/index.ts"
-              ]
-            }
+  "$schema": "../node_modules/konsistent/konsistent.schema.json",
+  "version": "v1",
+  "conventions": [
+    {
+      "name": "package-dir-must-have-required-files",
+      "description": "Every package directory must contain a specific minimum set of files.",
+      "paths": ["packages/*"],
+      "must": [
+        {
+          "name": "package-dir-must-have-package-and-docs-files",
+          "description": "Every package directory must contain README, package.json and tsconfig.json.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "README.md",
+              "package.json",
+              "tsconfig.json",
+              "tsup.config.ts",
+              "src/index.ts"
+            ]
           }
-        ]
-      }
-    ]
-  }
+        }
+      ]
+    }
+  ]
+}
