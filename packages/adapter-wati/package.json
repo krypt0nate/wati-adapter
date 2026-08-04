@@ -49,8 +49,7 @@
     "url": "https://github.com/krypt0nate/wati-adapter/issues"
   },
   "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "keywords": [
     "chat",
