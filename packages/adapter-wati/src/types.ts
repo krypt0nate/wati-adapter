@@ -621,16 +621,6 @@ export interface WatiGetMessageTemplatesResponse {
 // =============================================================================
 
 /**
- * Result of a boolean operation (e.g. updating conversation status).
- *
- * @see https://docs.wati.io/reference/put_api-ext-v3-conversations-target-status
- */
-export interface WatiOperationResult {
-  /** Whether the operation succeeded */
-  result?: boolean;
-}
-
-/**
  * New status for a conversation.
  *
  * - `open`: the conversation is open and active

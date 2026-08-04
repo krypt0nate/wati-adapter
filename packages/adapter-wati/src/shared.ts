@@ -205,9 +205,7 @@ export function normalizeWebhookEvents(
  *
  * A value is considered an event when it is a record with a string `id`.
  */
-export function isWebhookEvent(
-  value: unknown
-): value is WatiMessageReceivedEvent {
+function isWebhookEvent(value: unknown): value is WatiMessageReceivedEvent {
   return isRecord(value) && typeof value.id === "string";
 }
 
