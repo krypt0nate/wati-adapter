@@ -13,6 +13,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write
   pull-requests: write
+  packages: write
   id-token: write
 
 jobs:
@@ -42,20 +43,42 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Set npm token
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+      - name: Configure registry auth
+        run: |
+          {
+            echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}"
+            echo "@krypt0nate:registry=https://npm.pkg.github.com"
+            echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}"
+          } > ~/.npmrc
 
-      - name: Create release PR or publish
+      - name: Create release PR or publish to npm
         id: changesets
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
-          publish: bunx changeset publish
+          publish: bunx changeset publish --no-git-tag
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
           commitMode: github-api
         env:
           NPM_CONFIG_PROVENANCE: "true"
+          npm_config_registry: "https://registry.npmjs.org"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          set +e
+          for pkg in packages/*/package.json; do
+            dir=$(dirname "$pkg")
+            name=$(node -p "require('./$pkg').name")
+            version=$(node -p "require('./$pkg').version")
+            echo "→ $name@$version"
+            (cd "$dir" && npm publish \
+              --registry https://npm.pkg.github.com \
+              --access public) \
+              && echo "  ✓ published" \
+              || echo "  ! skipped (already published or failed)"
+          done
 
       - name: Promote release branch
         if: steps.changesets.outputs.published == 'true'
