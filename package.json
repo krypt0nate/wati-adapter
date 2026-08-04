@@ -15,7 +15,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo run lint",
-    "test": "turbo test --filter='!docs'",
+    "test": "turbo test",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean && rm -rf node_modules",
     "check": "ultracite check",
