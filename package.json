@@ -19,12 +19,14 @@
     "typecheck": "turbo typecheck",
     "clean": "turbo clean && rm -rf node_modules",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "konsistent": "konsistent --config-path .github/konsistent.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
     "@changesets/cli": "^2.29.8",
     "@vitest/coverage-v8": "^4.0.18",
+    "konsistent": "0.0.1-alpha.24",
     "tsx": "^4.23.5",
     "turbo": "^2.10.8",
     "typescript": "^5.9.3",
