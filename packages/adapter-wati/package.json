@@ -1,0 +1,71 @@
+{
+  "name": "@chat-adapter/wati",
+  "version": "0.1.0",
+  "description": "Wati adapter for Chat SDK — Webhooks, interactive messages, and templates",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "chat": "4.34.0"
+  },
+  "dependencies": {
+    "@chat-adapter/shared": "4.34.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.2",
+    "chat": "4.34.0",
+    "tsup": "8.3.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krypt0nate/wati-adapter.git",
+    "directory": "packages/adapter-wati"
+  },
+  "homepage": "",
+  "bugs": {
+    "url": "https://github.com/krypt0nate/wati-adapter/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "chat",
+    "chat-sdk",
+    "chatbot",
+    "wati",
+    "wati-api",
+    "wati-templates",
+    "wati-webhooks",
+    "wati-interactive-messages",
+    "bot",
+    "adapter",
+    "messaging",
+    "ai-agent",
+    "ai-sdk",
+    "vercel"
+  ],
+  "license": "MIT"
+}
