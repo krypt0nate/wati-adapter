@@ -100,9 +100,10 @@ const JSON_SNIFF_PATTERN = /^[[{]/;
  * Wati adapter for the Chat SDK.
  *
  * Wati conversations are 1:1 between a business WhatsApp number and a user;
- * thread IDs encode the contact's `waId` as `wati:<waId>` (or a BSUID where
- * available). The adapter authenticates all API traffic with a Bearer token
- * and restricts outbound API paths to Wati's documented prefixes.
+ * thread IDs encode the contact's `waId` (or BSUID) as
+ * `wati:<base64url(waId)>`. The adapter authenticates all API traffic with a
+ * Bearer token and restricts outbound API paths to Wati's documented
+ * prefixes.
  */
 export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
   /** Adapter name used by the Chat SDK. */
@@ -134,6 +135,11 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
   private readonly formatConverter = new WatiFormatConverter();
   /** Chat SDK instance, set during {@link initialize}. */
   private chat: ChatInstance | null = null;
+  /**
+   * Message IDs returned by outbound sends, used to recognize webhook echoes
+   * of messages sent by this adapter runtime.
+   */
+  private readonly sentMessageIds = new Set<string>();
 
   /**
    * @param config - Adapter configuration with all required fields resolved
@@ -508,30 +514,37 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
   }
 
   /**
-   * Encode a thread ID as `wati:<waId>`.
+   * Encode a thread ID as `wati:<base64url(waId)>`.
    *
-   * @throws {ValidationError} When the `waId` is empty or contains a colon.
+   * Base64url encoding keeps the segment free of colons and other special
+   * characters so it can be parsed back unambiguously.
+   *
+   * @throws {ValidationError} When the `waId` is empty.
    */
   encodeThreadId(data: WatiThreadId): string {
     const waId = data.waId.trim();
-    if (!waId || waId.includes(":")) {
+    if (!waId) {
       throw new ValidationError("wati", `Invalid WATI user ID: ${data.waId}`);
     }
-    return `wati:${waId}`;
+    return `wati:${Buffer.from(waId, "utf8").toString("base64url")}`;
   }
 
   /**
-   * Decode a `wati:<waId>` thread ID.
+   * Decode a `wati:<base64url(waId)>` thread ID.
    *
    * @throws {ValidationError} When the thread ID is not prefixed with `wati:`
-   *   or the encoded `waId` is empty or contains a colon.
+   *   or the encoded segment is not valid base64url.
    */
   decodeThreadId(threadId: string): WatiThreadId {
     if (!threadId.startsWith("wati:")) {
       throw new ValidationError("wati", `Invalid WATI thread ID: ${threadId}`);
     }
-    const waId = threadId.slice("wati:".length);
-    if (!waId || waId.includes(":")) {
+    const encoded = threadId.slice("wati:".length);
+    if (!encoded) {
+      throw new ValidationError("wati", `Invalid WATI thread ID: ${threadId}`);
+    }
+    const waId = Buffer.from(encoded, "base64url").toString("utf8");
+    if (!waId || Buffer.from(waId, "utf8").toString("base64url") !== encoded) {
       throw new ValidationError("wati", `Invalid WATI thread ID: ${threadId}`);
     }
     return { waId };
@@ -552,21 +565,30 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
   /**
    * Parse a raw Wati message into a Chat SDK {@link Message}.
    *
-   * Determines the author from the event's `owner` flag, extracts text via
-   * {@link extractText}, converts it to the canonical AST, and attaches any
-   * media attachments.
+   * The `owner` flag alone does not imply the message came from this adapter
+   * runtime (Wati inbox operators share the same account), so owner messages
+   * are marked `isMe`/`isBot` only when their ID matches an outbound message
+   * this runtime sent; other owner messages keep operator identity. Inbound
+   * messages use the sender's contact info.
    */
   parseMessage(raw: WatiRawMessage): Message<WatiRawMessage> {
     const event = raw.event;
     const owner = event.owner === true;
+    const isOwnEcho = owner && this.sentMessageIds.has(event.id ?? "");
     const text = extractText(event);
     const author: Author = owner
       ? {
-          userId: this.userName,
-          userName: this.userName,
-          fullName: this.userName,
-          isBot: true,
-          isMe: true,
+          userId: isOwnEcho
+            ? this.userName
+            : (webhookString(event, "operatorEmail") ?? this.userName),
+          userName: isOwnEcho
+            ? this.userName
+            : (webhookString(event, "operatorName") ?? this.userName),
+          fullName: isOwnEcho
+            ? this.userName
+            : (webhookString(event, "operatorName") ?? this.userName),
+          isBot: isOwnEcho,
+          isMe: isOwnEcho,
         }
       : {
           userId: raw.waId,
@@ -1055,6 +1077,9 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
   /**
    * Build an outbound raw message from a Wati send response.
    *
+   * Records the returned message ID so webhook echoes of this send can be
+   * recognized as `isMe` messages.
+   *
    * @throws {AdapterError} When the API response contains no message ID.
    */
   private responseRaw(
@@ -1068,6 +1093,7 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
     if (!event?.id) {
       throw new AdapterError("WATI API did not return a message ID", "wati");
     }
+    this.sentMessageIds.add(event.id);
     return {
       id: event.id,
       threadId,
@@ -1086,6 +1112,9 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
   /**
    * Build an outbound raw message for sends without a Wati response event
    * (e.g. template sends), using the local message ID.
+   *
+   * Records the local message ID so template webhook echoes can be recognized
+   * as `isMe` messages when the platform surfaces it.
    */
   private outboundRaw(
     threadId: string,
@@ -1093,6 +1122,7 @@ export class WatiAdapter implements Adapter<WatiThreadId, WatiRawMessage> {
     id: string,
     type: string
   ): RawMessage<WatiRawMessage> {
+    this.sentMessageIds.add(id);
     return {
       id,
       threadId,
