@@ -1,6 +1,6 @@
 {
   "name": "chat-adapter-wati",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Wati adapter for Chat SDK — Webhooks, interactive messages, and templates",
   "type": "module",
   "engines": {
