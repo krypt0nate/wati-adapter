@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    # Publish only after successful CI for a push to main, never for a PR run.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.3.12"
+
+      - name: Setup Node.js for npm publishing
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Create release PR or publish
+        id: changesets
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          publish: bunx changeset publish
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
+          commitMode: github-api
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote release branch
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          if git ls-remote --exit-code --heads origin release >/dev/null 2>&1; then
+            git fetch origin release
+            expected=$(git rev-parse origin/release)
+            git push --force-with-lease=refs/heads/release:$expected origin HEAD:refs/heads/release
+          else
+            git push origin HEAD:refs/heads/release
+          fi
